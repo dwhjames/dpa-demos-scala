@@ -8,6 +8,7 @@ Behavioural
 * Command
 * Iterator
 * Observer
+* State
 * Template
 * Visitor
 
