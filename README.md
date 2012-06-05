@@ -29,3 +29,4 @@ Structural
 * Decorator
 * Facade
 * Flyweight
+* Proxy
