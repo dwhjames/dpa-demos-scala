@@ -1,6 +1,7 @@
 package behavioral
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.StringBuilder
 
 object VisitorDemo {
 
@@ -14,9 +15,7 @@ object VisitorDemo {
     c.add(s)
     
     println("*Display document with GoF Visitor pattern*")
-    c.accept(new Display)
-    
-    println()
+    print(c.accept(new Display))
     
     println("*Display document with pattern matching*")
     Display.display(c)
@@ -25,17 +24,17 @@ object VisitorDemo {
 
 trait Document {
   def contains(s: String): Boolean
-  def accept(v: Visitor): Unit
+  def accept[R](v: InternalVisitor[R]): R
 }
 
-trait Visitor {
-  def visit(p: Paragraph): Unit
-  def visit(s: Section): Unit
+trait InternalVisitor[R] {
+  def visitParagraph(paragraph: String): R
+  def visitSection(title: String, children:List[R]): R
 }
 
 class Paragraph(val paragraph: String) extends Document {
   override def contains(s: String) = paragraph.contains(s)
-  override def accept(v: Visitor) = v.visit(this)
+  override def accept[R](v: InternalVisitor[R]) = v.visitParagraph(paragraph)
 }
 
 object Paragraph {
@@ -52,23 +51,24 @@ class Section(val title: String) extends Document {
     return false
   }
   
-  override def accept(v: Visitor) = {
-    v.visit(this)
-    children.foreach(_.accept(v))
-  }
+  override def accept[R](v: InternalVisitor[R]) =
+    v.visitSection(title, children.map(_.accept(v)).toList)
 }
 
 object Section {
   def unapply(s: Section): Option[(String, Seq[Document])] = Some(s.title, s.children)
 }
 
-class Display extends Visitor {
-  override def visit(p: Paragraph) = println(p.paragraph)
+class Display extends InternalVisitor[StringBuilder] {
+  override def visitParagraph(paragraph: String) =
+    new StringBuilder(paragraph)
   
-  override def visit(s: Section) = {
-    println(s.title)
-    for (i <- 0 until s.title.length) print('=')
-    println()
+  override def visitSection(title: String, children: List[StringBuilder]) = {
+    val builder = new StringBuilder(title).append('\n')
+    for (i <- 0 until title.length) builder.append('=')
+    builder.append('\n')
+    for (child <- children) builder.append(child).append('\n')
+    builder
   }
 }
 
