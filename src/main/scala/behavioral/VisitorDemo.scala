@@ -14,17 +14,26 @@ object VisitorDemo {
     val c = new Section("Programme")
     c.add(s)
     
-    println("*Display document with GoF Visitor pattern*")
-    print(c.accept(new Display))
-    
+    println("*Display document with Internal Visitor pattern*")
+    print(c.acceptInternal(new Display))
+
     println("*Display document with pattern matching*")
     Display.display(c)
+
+    println("*Check membership with External Visitor pattern*")
+    println(c.title + " contains \"Design\": " + c.acceptExternal(new Contains("Design")))
+    println(c.title + " does not contain \"Scala\": " + !c.acceptExternal(new Contains("Scala")))
+
+    println("*Check membership with direct recursion*")
+    println(c.title + " contains \"Design\": " + c.contains("Design"))
+    println(c.title + " does not contain \"Scala\": " + !c.contains("Scala"))
   }
 }
 
 trait Document {
   def contains(s: String): Boolean
-  def accept[R](v: InternalVisitor[R]): R
+  def acceptInternal[R](v: InternalVisitor[R]): R
+  def acceptExternal[R](v: ExternalVisitor[R]): R
 }
 
 trait InternalVisitor[R] {
@@ -32,9 +41,15 @@ trait InternalVisitor[R] {
   def visitSection(title: String, children:List[R]): R
 }
 
+trait ExternalVisitor[R] {
+  def visitParagraph(paragraph: String): R
+  def visitSection(title: String, children:List[Document]): R
+}
+
 class Paragraph(val paragraph: String) extends Document {
   override def contains(s: String) = paragraph.contains(s)
-  override def accept[R](v: InternalVisitor[R]) = v.visitParagraph(paragraph)
+  override def acceptInternal[R](v: InternalVisitor[R]) = v.visitParagraph(paragraph)
+  override def acceptExternal[R](v: ExternalVisitor[R]) = v.visitParagraph(paragraph)
 }
 
 object Paragraph {
@@ -51,8 +66,11 @@ class Section(val title: String) extends Document {
     return false
   }
   
-  override def accept[R](v: InternalVisitor[R]) =
-    v.visitSection(title, children.map(_.accept(v)).toList)
+  override def acceptInternal[R](v: InternalVisitor[R]) =
+    v.visitSection(title, children.map(_.acceptInternal(v)).toList)
+
+  override def acceptExternal[R](v: ExternalVisitor[R]) =
+    v.visitSection(title, children.toList)
 }
 
 object Section {
@@ -81,5 +99,15 @@ object Display {
       println()
       children.foreach(display(_))
     }
+  }
+}
+
+class Contains(str: String) extends ExternalVisitor[Boolean] {
+  override def visitParagraph(paragraph: String) =
+    paragraph.contains(str)
+
+  override def visitSection(title: String, children: List[Document]): Boolean = {
+    for (child <- children if child.acceptExternal(this)) return true
+    return false
   }
 }
