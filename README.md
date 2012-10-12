@@ -7,6 +7,7 @@ Behavioural
 * Chain of Responsibility
 * Command
 * Iterator
+* Memento
 * Observer
 * State
 * Template
